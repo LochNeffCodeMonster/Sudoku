@@ -350,14 +350,14 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	 * @param filename    name of user selected File. 
 	 * @return game    a 2D matrix representation of a sudoku puzzle. 
 	 */
-	private int[][] readPuzzleFile(File filename) {
+	private void readPuzzleFile(File filename) {
 		System.out.println("Reading file: "+ filename);
 		Scanner puzzle = null;
 		try {
 	        puzzle = new Scanner(filename, "UTF-8");
 		} catch (FileNotFoundException e) {
 	        e.printStackTrace();
-	    }
+	    	}
 		for(int row = 0; row < 9; row++) {
 			String line = puzzle.nextLine();
 			String[] token = line.split("  ");
@@ -365,9 +365,14 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 				readGame[row][col] = token[col];
 			}
 		}
+		// Amount of time spent on a puzzle in seconds is located on line 10, a new puzzle has a value of 0
+		String timeLine = puzzle.nextLine();
+		String[] timeToken = timeLine.split("  ");
+		int timeValue = Integer.parseInt(timeToken[0]);
+		seconds = timeValue;
+		
 		newGame(readGame);
 		updateStatusLabels();
-		return game;
 	}
 	
 	/**
@@ -520,6 +525,13 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 				tempX = 6; tempY = 6;
 			}
 		}
+		
+		// Updated code
+		int tempX = row / 3;
+		int tempY = col / 3;
+		int startX = tempX * 3;
+		int startY = tempY * 3;
+		
 		
 		// Iterate through Cells located in the same block. 
 		for(int x = tempX; x < tempX + 3; x++) {

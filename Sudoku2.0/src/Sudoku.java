@@ -595,14 +595,12 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 							cells[row][col].setBackground(colorList.get(randomColor));
 						}
 					}
-					
 					// Highlight cells in block[1][0] and block[1][2].
 					if(row > 2 && row < 6) {
 						if(col < 3 || col > 5) {
 							cells[row][col].setBackground(colorList.get(randomColor));
 						}
 					}
-						
 					// Highlight cells in block[2][1]. 
 					if(row > 5) {
 						if(col > 2 && col < 6) {
@@ -611,8 +609,7 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 					}
 				}
 			}
-		}
-			
+		}	
 		// Party mode is turned off, return Cells to their original background Color. 
 		else if(partyOn == false) {
 			highlightCells();
@@ -635,9 +632,7 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		partyOn = logic;
 	}
 
-	
-	
-	
+
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
 		Object cell = arg0.getSource();

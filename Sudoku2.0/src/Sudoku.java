@@ -17,13 +17,11 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ThreadLocalRandom;
-
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFileChooser;
@@ -47,36 +45,28 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	private Cell[][] cells;
 	
 	private JMenuBar gameMenu;
-	private JMenu helpMenu;
 	private JMenuItem getHint;
 	
-	//Until here
-	
 	private JPanel timePanel = new JPanel();
-	
-	private String[][] readGame = new String[9][9];
-	private int[][] game = new int[9][9];
-	private int[][] solvedGame;
-	
-	
 	private JTextField timeClock;
 	private String time;
 	private int seconds = 0; 
 	private Timer timer;
 	
-
+	private String[][] readGame;
+	private int[][] game = new int[9][9];
+	private int[][] solvedGame;
+	
 	private JFileChooser fileChooser;
 	private File file;
 	
 	private Color defaultBackground = Color.ORANGE;
-	private boolean partyOn = false;
-	private int counter = 0;
-	
+	private boolean partyModeOn = false;
 	private ArrayList<Color> colorList;
 	
-	private int hintsLeft = 3;
-    private int counter2 = 0;
-    private Cell currentCell;
+	private int availableHints = 3;
+	private Cell currentCell;
+	private int counter;
 	
 	/**
 	 * Class constructor generates an instance of the GUI  
@@ -84,7 +74,7 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	public Sudoku() {
 		
 		setTitle("Sudoku Puzzle 2.0");
-		setSize(1500, 1500);
+		setSize(2000, 2000);
 		setFont(new Font("Impact", Font.BOLD, 25));
 		setLayout(new BorderLayout());
         setDefaultCloseOperation(EXIT_ON_CLOSE);
@@ -98,14 +88,17 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
         timePanel = timePanel();
         add(timePanel, BorderLayout.SOUTH);
         
-        createColors();
+        generateColors();
             
         setLocationRelativeTo(null);
         pack();
         setVisible(true);
 	}
 	
-	
+	/**
+	 * The gameBoard method builds the GUI, which is a 9x9 grid where the user will input values 
+	 * @return	gameBoard - an instance of the GUI
+	 */
 	private JPanel gameBoard() {
 		
 		// Nine 3x3 subgrids that compose the 9x9 grid
@@ -149,7 +142,7 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 				else if(x >= 6 && x <= 8) {
 					row = 2;
 				}
-						
+				
 				// Determine column number of block, for which the newly created cell belongs 
 				if(y >= 0 && y <= 2) {
 					column = 0;
@@ -167,6 +160,10 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		return gameBoard;		
 	}
 	
+	/**
+	 * The highlightCells method changes the background to the defaultBackground color of the Cells
+	 * located in alternating blocks to form a checkerboard pattern
+	 */
 	private void highlightCells() {
 		
 		// Cells are highlighted by alternating blocks to form a checkerboard pattern 
@@ -200,76 +197,96 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		}
 	}
 	
+	/**
+	 * The gameMenu method builds the JMenu containing various JMenuItems.
+	 * @return gameMenu	JMenu for game.
+	 */
 	private JMenuBar gameMenu() {
 		
 		// Initiate variables
 		gameMenu = new JMenuBar();
-		JMenu fileMenu, partyMenu;
-		JMenuItem newItem, readItem, saveItem, exitItem, startPartyItem, newPartyItem, stopPartyItem, generateRandomGame;
+		JMenu fileMenu, partyMenu, subMenu, helpMenu;
+		JMenuItem menuItem;
 		
-		// Generate "File" JMenu and JMenuItem's
+		// Build the "File" JMenu and JMenuItems
 		fileMenu = new JMenu("File");
 		
-		newItem = new JMenuItem("New");
-		fileMenu.add(newItem);
-		newItem.addActionListener(this);
+		menuItem = new JMenuItem("New");
+		fileMenu.add(menuItem);
+		menuItem.addActionListener(this);
 				
-		readItem = new JMenuItem("Read");
-		fileMenu.add(readItem);
-		readItem.addActionListener(this);
+		menuItem = new JMenuItem("Read");
+		fileMenu.add(menuItem);
+		menuItem.addActionListener(this);
 					
-		saveItem = new JMenuItem("Save");
-		fileMenu.add(saveItem);
-		saveItem.addActionListener(this);
-				
-		generateRandomGame = new JMenuItem("Random");
-		fileMenu.add(generateRandomGame);
-		generateRandomGame.addActionListener(this);
+		menuItem = new JMenuItem("Save");
+		fileMenu.add(menuItem);
+		menuItem.addActionListener(this);
 		
-		exitItem = new JMenuItem("Exit");
-		fileMenu.add(exitItem);
-		exitItem.addActionListener(this);
+		subMenu = new JMenu("Random");
+		menuItem = new JMenuItem("Easy");
+		subMenu.add(menuItem);
+		menuItem.addActionListener(this);
+	
+		menuItem = new JMenuItem("Medium");
+		subMenu.add(menuItem);
+		menuItem.addActionListener(this);
 		
-		// Generate "Party" JMenu and JMenuItem's
+		menuItem = new JMenuItem("Hard");
+		subMenu.add(menuItem);
+		menuItem.addActionListener(this);
+		fileMenu.add(subMenu);
+		
+		fileMenu.addSeparator();
+		
+		menuItem = new JMenuItem("Exit");
+		fileMenu.add(menuItem);
+		menuItem.addActionListener(this);
+		
+		// Build the "Party" JMenu and JMenuItems
 		partyMenu = new JMenu("Party");
 		
-		startPartyItem = new JMenuItem("Start Party");
-		partyMenu.add(startPartyItem);
-		startPartyItem.addActionListener(this);
+		menuItem = new JMenuItem("Start");
+		partyMenu.add(menuItem);
+		menuItem.addActionListener(this);
 				
-		newPartyItem = new JMenuItem("After Party");
-		partyMenu.add(newPartyItem);
-		newPartyItem.addActionListener(this);
-				
-		stopPartyItem = new JMenuItem("Stop Party");
-		partyMenu.add(stopPartyItem);
-		stopPartyItem.addActionListener(this);
+		menuItem = new JMenuItem("Stop");
+		partyMenu.add(menuItem);
+		menuItem.addActionListener(this);
 		
-		// Generate "Help" JMenu and JMenuItem's
+		// Build the "Help" JMenu and JMenuItems
 		helpMenu = new JMenu("Help");
 				
-		getHint = new JMenuItem("Get Hint (3 left)");
+		getHint = new JMenuItem("Hint (3)");
+		getHint.setEnabled(false);
 		helpMenu.add(getHint);
 		getHint.addActionListener(this);
-		
-		helpMenu.setVisible(false);
+		helpMenu.setEnabled(true);
 				
 		gameMenu.add(fileMenu);
 		gameMenu.add(partyMenu);
 		gameMenu.add(helpMenu);
-		
 		return gameMenu;
 	}
 	
+	/**
+	 * The timePanel method builds the JPanel used to store the in game clock.
+	 * @return timePanel		JPanel used to store the in game clock. 
+	 */
 	private JPanel timePanel() {
 		
 		timeClock = new JTextField();
 		timeClock.setText("0:00");
 		timePanel.add(timeClock, BorderLayout.EAST);
-		
 		return timePanel;
 	}
 	
+	/**
+	 * The getTime method builds a String represenation of the format "minutes:seconds"; 
+	 * 	of the current time elapsed in game.
+	 * @param time	number of seconds elapsed
+	 * @return	game time represented as a String with the format "mm:ss".
+	 */
 	private String getTime(int time) {
 		int minutes = time / 60;
 		int seconds = time % 60;
@@ -281,6 +298,10 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		}
 	}
 
+	/**
+	 * The gameTimer method creates an instance of the timer used to keep track of how many
+	 * 	seconds have elapsed so far in the game.
+	 */
 	public void gameTimer(){
 	    TimerTask repeatedTask = new TimerTask() {
 	        public void run() {
@@ -295,26 +316,15 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	    timer.scheduleAtFixedRate(repeatedTask, delay, period);
 	}
 	
+	/**
+	 * The resetTimer methods removes all currently elapsed time from the game clock.
+	 */
 	public void resetTimer() {
 		seconds = 0;
 		timeClock.setText("0:00");
 		timer.cancel();
 	}
-	
-	/**
-	 * @return the helpMenu
-	 */
-	public JMenu getHelpMenu() {
-		return helpMenu;
-	}
-	/**
-	 * 
-	 * @return the menuItem getHint
-	 */
-	public JMenuItem getHintMenuItem() {
-		return getHint;
-	}
-	
+		
 	/**
 	 * The createFileDisplay method creates the display for the JFileChooser. 
 	 */
@@ -348,35 +358,34 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	/**
 	 * The readPuzzleFile method reads in the selected File chosen by the user, and sets the game board. 
 	 * @param filename    name of user selected File. 
-	 * @return game    a 2D matrix representation of a sudoku puzzle. 
 	 */
 	private void readPuzzleFile(File filename) {
+		readGame = new String[9][9];
 		System.out.println("Reading file: "+ filename);
-		Scanner puzzle = null;
+		Scanner puzzleScanner = null;
 		try {
-	        puzzle = new Scanner(filename, "UTF-8");
+	        puzzleScanner = new Scanner(filename, "UTF-8");
 		} catch (FileNotFoundException e) {
 	        e.printStackTrace();
-	    	}
+	    }
 		for(int row = 0; row < 9; row++) {
-			String line = puzzle.nextLine();
+			String line = puzzleScanner.nextLine();
 			String[] token = line.split("  ");
 			for(int col = 0; col < token.length; col++) {
 				readGame[row][col] = token[col];
 			}
 		}
 		// Amount of time spent on a puzzle in seconds is located on line 10, a new puzzle has a value of 0
-		String timeLine = puzzle.nextLine();
+		String timeLine = puzzleScanner.nextLine();
 		String[] timeToken = timeLine.split("  ");
 		int timeValue = Integer.parseInt(timeToken[0]);
-		seconds = timeValue;
-		
+		this.seconds = timeValue;
 		newGame(readGame);
 		updateStatusLabels();
 	}
 	
 	/**
-	 * The writeToFile method saves the current state of the game user interface to a user selected File. 
+	 * The writeToFile method saves the current state of the GUI to a user selected File. 
 	 */
 	public void writeToFile() {
 		String directoryPath = Paths.get("./Resources").toAbsolutePath().normalize().toString();
@@ -395,16 +404,22 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	    			for(int i = 0; i < 9; i++) {
 	    				String puzzleString = new String();
 	    				for(int j = 0; j < 9; j++) {
-	    					int x = cells[i][j].getValue();
-	    					puzzleString += x + "  ";
+	    					int value = cells[i][j].getValue();
+	    					if(cells[i][j].getOriginal() == true) {
+	    						puzzleString += value + "*" + " ";
 	    					}
+	    					else {
+	    						puzzleString += value + "  ";
+	    					}
+	    				}
 	    				puzzleString.trim();
 	    				puzzleStream.println(puzzleString);
 	    			}
+	    			puzzleStream.println(seconds);
 	    			puzzleStream.close();
-	    			System.out.println("Overwrote: " +fileToSave);
+	    			System.out.println("Overwrote: " + fileToSave);
 			} catch (IOException e) {
-				System.err.println("Error: File: " +fileToSave+ " not found!");
+				System.err.println("Error: File: " + fileToSave + " not found!");
 				e.printStackTrace();
 			}
 		    System.out.println("Save as file: " + fileToSave.getAbsolutePath());
@@ -425,6 +440,7 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 					String str = Character.toString(temp);
 					cells[row][col].setValue(str);
 					cells[row][col].setEnabled(false);
+					cells[row][col].setOriginal(true);
 					game[row][col] = value;
 				}
 				else {
@@ -446,10 +462,12 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		for(int row = 0; row < 9; row++) {
 			for(int col = 0; col < 9; col++) {
 				cells[row][col].setEnabled(true);
+				cells[row][col].setOriginal(false);
 				cells[row][col].setValue("0");
 				counter = 0;
 			}
 		}
+		resetHint();
 	}
 
 	/**
@@ -469,80 +487,41 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	 * @param col    y-coordinate indicating which column the Cell is located in.
 	 */
 	private void updateCell(int row, int col) {
+		
 		ArrayList<Integer> values = new ArrayList<>();
 		ArrayList<Integer> legalValues = new ArrayList<>();
-		
 		int tempX = 0;
 		int tempY = 0;
 		
-		// Iterate through Cells located in same row.
+		// Iterate over Cells located in the same row.
 		for(int j = 0; j < 9; j++) {
 			int a = cells[row][j].getValue();
 			if(a != 0) {
 				values.add(a);
 			}
 		}
-		
-		// Iterate through Cells located in the same column.
+		// Iterate over Cells located in the same column.
 		for(int i = 0; i < 9; i++) {
 			int b = cells[i][col].getValue();
 			if(b != 0) {
 				values.add(b);
 			}
 		}
-		
-		// Determine which block the Cell is located in.  
-		if(row < 3) {
-			if(col < 3) {
-				tempX = 0; tempY = 0;
-			}
-			else if(col > 2 && col < 6) {
-				tempX = 0; tempY = 3;
-			}
-			else {
-				tempX = 0; tempY = 6;
-			}
-		}
-		else if(row > 2 && row < 6) {
-			if(col < 3) {
-				tempX = 3; tempY = 0;
-			}
-			else if(col > 2 && col < 6) {
-				tempX = 3; tempY = 3;
-			}
-			else {
-				tempX = 3; tempY = 6;
-			}
-		}
-		else if(row > 5) {
-			if(col < 3) {
-				tempX = 6; tempY = 0;
-			}
-			else if(col > 2 && col < 6) {
-				tempX = 6; tempY = 3;
-			}
-			else {
-				tempX = 6; tempY = 6;
-			}
-		}
-		
-		// Updated code
-		int tempX = row / 3;
-		int tempY = col / 3;
+		// Determine which block the current Cell is located in.  
+		tempX = row / 3;
+		tempY = col / 3;
 		int startX = tempX * 3;
 		int startY = tempY * 3;
 		
-		
-		// Iterate through Cells located in the same block. 
-		for(int x = tempX; x < tempX + 3; x++) {
-			for(int y = tempY; y < tempY + 3; y++) {
+		// Iterate over Cells located in the same block. 
+		for(int x = startX; x < startX + 3; x++) {
+			for(int y = startY; y < startY + 3; y++) {
 				int c = cells[x][y].getValue();
 				if(c != 0) {
 					values.add(c);
 				}
 			}
 		}
-		
 		// Add legal values to the ArrayList legalValues, if and only if, the value is not found in the same row, column or block
 		//		of the current Cell. 
 		for(int i = 1; i < 10; i++) {
@@ -554,8 +533,8 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	}
 	
 	/**
-	 * The setValue method updates a value at a specified location in the 2D matrix game. 
-	 * @param cell    the Cell containing the value entered in by the user. 
+	 * The setValue method updates the value for a specified Cell. 
+	 * @param cell    a Cell containing the value input by the user. 
 	 */
 	public void setValue(Cell cell) {
 		int x = cell.getRowX();
@@ -563,7 +542,11 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		game[x][y] = cell.getValue();
 	}
 	
-	public ArrayList<Color> createColors() {
+	/**
+	 * The generateColors method produces a list of Colors used when partyModeOn is true. 
+	 * @return	colorList - list of Colors
+	 */
+	public ArrayList<Color> generateColors() {
 		colorList = new ArrayList<Color>();
 		Integer[] red = {255, 255, 138, 65, 0, 0, 127, 0, 0, 255, 255, 255, 64, 176};
 		Integer[] green = {20, 0, 43, 105, 0, 191, 255, 255, 255, 255, 165, 99, 224, 196};
@@ -576,32 +559,33 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	}
 	
 	/**
-	 * The partyMode method changes the background Color of the highlighted cells, 
-	 * 		to a randomly selected Color. 
+	 * The partyMode method changes the background of each highlighted Cell,
+	 * 	to a randomly selected color from the colorList.
 	 */
-	public void partyMode() {
+	public void partyMode(boolean mode) {
 		
-		if(partyOn == true) {
-			
-			// Party mode is on, change background Color of highlighted cells to a randomly selected Color.  
+		partyModeOn = mode;
+		
+		if(partyModeOn == true) {
+			Random rand = new Random();
+			// Change the background of each highlighted Cell to a randomly selected color.  
 			for(int row = 0; row < 9; row++) {
 				for(int col = 0; col < 9; col++) {
-					Random rand = new Random();
 					int randomColor = rand.nextInt(14);
 					
-					// Highlight cells in block[0][1]. 
+					// Highlight Cells in block[0][1]. 
 					if(row < 3) {
 						if(col > 2 && col < 6) {
 							cells[row][col].setBackground(colorList.get(randomColor));
 						}
 					}
-					// Highlight cells in block[1][0] and block[1][2].
+					// Highlight Cells in block[1][0] and block[1][2].
 					if(row > 2 && row < 6) {
 						if(col < 3 || col > 5) {
 							cells[row][col].setBackground(colorList.get(randomColor));
 						}
 					}
-					// Highlight cells in block[2][1]. 
+					// Highlight Cells in block[2][1]. 
 					if(row > 5) {
 						if(col > 2 && col < 6) {
 							cells[row][col].setBackground(colorList.get(randomColor));
@@ -609,29 +593,13 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 					}
 				}
 			}
-		}	
-		// Party mode is turned off, return Cells to their original background Color. 
-		else if(partyOn == false) {
+		}
+		// Return highlighted Cells to their defualt background color. 
+		else if(partyModeOn == false) {
 			highlightCells();
 		}
 	}
 	
-	/**
-	 * The getPartyMode returns a boolean value indicating whether or not party mode is on. 
-	 * @return partyOn    boolean value
-	 */
-	public boolean getPartyMode() {
-		return partyOn;
-	}
-	
-	/**
-	 * The setPartyMode sets the party mode. 
-	 * @param logic    boolean value. 
-	 */
-	public void setPartyMode(boolean logic) {
-		partyOn = logic;
-	}
-
 
 	@Override
 	public void mouseClicked(MouseEvent arg0) {
@@ -693,79 +661,63 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	public void actionPerformed(ActionEvent arg0) {
 		// Clear the game user interface (GUI).
 		if (arg0.getActionCommand().equals("New")) {
-			/**getHelpMenu().setVisible(false);**/
 			clearGame();
-			setPartyMode(false);
-			partyMode();
+			partyMode(false);
 			resetTimer();
+			resetHint();
 		}
-				
 		// Generate JFileChooser for opening a file.
 		else if (arg0.getActionCommand().equals("Read")) {
-			/**getHelpMenu().setVisible(false);**/
 			createFileDisplay();
 			gameTimer();
-		}
-				
+		}	
 		// Generate JFileCooser for saving a file. 
 		else if (arg0.getActionCommand().equals("Save")) {
 			writeToFile();
 		}
-				
 		// Exit the GUI. 
 		else if (arg0.getActionCommand().equals("Exit")) {
 			System.exit(0);
 		}
-				
-		// Start or stop party mode. 
-		else if (arg0.getActionCommand().equals("Start Party")) {
-			if (getPartyMode() == false) {
-				setPartyMode(true);
-			}
-			partyMode();
+		// Start party mode. 
+		else if (arg0.getActionCommand().equals("Start")) {
+			partyMode(true);
 		}
-				
-		// Generate new party mode. 
-		else if (arg0.getActionCommand().equals("After Party")) {
-			if (getPartyMode() == true) {
-				partyMode();
-			}
+		// Stop party mode.
+		else if (arg0.getActionCommand().equals("Stop")) {
+			partyMode(false);
 		}
-				
-		else if (arg0.getActionCommand().equals("Stop Party")) {
-			if (getPartyMode() == true) {
-				setPartyMode(false);
-			}
-			partyMode();
-		}
-		
-		else if (arg0.getActionCommand().equals("Random")) {
-			resetHint();			
-			getHelpMenu().setVisible(true);
+		// Generate a random game containing 32 prefilled Cells.
+		else if (arg0.getActionCommand().equals("Easy")) {
 			clearGame();
-			genRandomGame();
+			getHint.setEnabled(true);
+			genRandomGame(32);
 		}
-			/**
-			hintsLeft = 3;
-			if(counter2 > 0) {
-				menuPanel.getHintMenuItem().setText("Get Hint ("+hintsLeft+" Left)");
-
-			}
-			counter2 +=1;
+		// Generate a random game containing 26 prefilled Cells.
+		else if (arg0.getActionCommand().equals("Medium")) {
+			getHint.setEnabled(true);
+			genRandomGame(26);
 		}
-				
-		else if(arg0.getActionCommand().contains("Get Hint")) {			
-			if(hintsLeft > 0) {
-				game.getHint();
-				hintsLeft--;
-				menuPanel.getHintMenuItem().setText("Get Hint ("+hintsLeft+" Left)");
-			}
-					
-			else {
-				System.out.println("You're out of hints!");
-			}	
-		}	**/
-				
+		// Generate a random game containing 20 prefilled Cells. 
+		else if (arg0.getActionCommand().equals("Hard")) {
+			getHint.setEnabled(true);
+			genRandomGame(20);
+		}
+		// Provide the user with a random value
+		else if(arg0.getActionCommand().contains("Hint")) {			
+			if(availableHints > 0) {
+				getHint();
+				availableHints--;
+				if(availableHints == 0) {
+					getHint.setText("Hint ("+ availableHints + ")");
+					getHint.setEnabled(false);
+				}
+				else {
+					getHint.setText("Hint ("+ availableHints + ")");
+				}
+			}		
+		}	
+		// Process the value input by the user, then update the cell if it is a valid input
 		else if(arg0.getActionCommand().matches("[1-9]+")) {
 			Object jB = arg0.getSource();
 			JButton jB1 = (JButton) jB;
@@ -774,81 +726,18 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		}
 	}
 	
-	public void genRandomGame2() {
-		
-		clearGame();
-		
-		int valueCounter = 0;
-		int[][] newGame = new int[9][9];
-		Random rand = new Random();
-		
-		for(int i = 0; i < 9; i++) {
-			ArrayList<Integer> blockValues = new ArrayList<Integer>();
-			blockValues.add(1);blockValues.add(2);blockValues.add(3);blockValues.add(4);
-			blockValues.add(5);blockValues.add(6);blockValues.add(7);blockValues.add(8);blockValues.add(9);
-			int rowStart = valueCounter / 9;
-			int rowEnd = rowStart + 3;
-			int colStart = valueCounter % 9;
-			int colEnd = colStart + 3;
-			
-			for(int j = rowStart; j < rowEnd; j++) {
-				for(int k = colStart; k < colEnd; k++) {
-					int shuffles = rand.nextInt(5);
-					for(int s = 0; s < shuffles; s++) {
-						Collections.shuffle(blockValues);
-					}
-					int currentValue;
-					boolean boo = false;
-					int arrayCounter = 0;
-					while(boo == false) {
-						currentValue = blockValues.get(arrayCounter);
-						boo = validate(currentValue, newGame, j, k);
-						
-						if(boo == false) {
-							arrayCounter++;
-							if(arrayCounter == blockValues.size()) {
-								genRandomGame();
-							}
-						}
-						else {
-							newGame[j][k] = currentValue;
-							blockValues.remove(arrayCounter);
-							valueCounter++;
-						}
-					}
-				}
-			}		
-		}
-		System.out.println(newGame[1][1]);
-	}
-	
-	public boolean validate(int value, int[][] game, int row, int col) {
-		
-		for(int i = 0; i < 9; i++) {
-			if(value == game[row][i]) {
-				return false;
-			}
-			else if(value == game[i][col]) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	
-	
 	/**
 	 * Generates a random COMPLETE sudoku game and ensures the game is solvable;
 	 * 		then displaying randomly selected values to the GUI.. 
 	 */
-	public void genRandomGame() {
+	public void genRandomGame(int valuesPlaced) {
 		
-		// Clear all values from GUI. 
+		// Reset the gameboard 
+		resetHint();
 		clearGame();
 		
 		// Creates a temporary 2D matrix for storing values.
 		int[][] newGame = new int[9][9];
-		
 		updateStatusLabels();
 		
 		// Used to store the legal values for the current Cell. 
@@ -862,13 +751,12 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		for (int x = 0; x < 9; x++) {
 			for (int y = 0; y < 9; y++) {
 				stopTime = System.currentTimeMillis();
-				
 				// Helps detect whether or not the algorithm is stuck and looping infinitely, while trying
 				//		to generate a solvable game.
 				if(stopTime-startTime > 1000) {
 					
 					// If the algorithm is stuck, restart method. 
-					genRandomGame();
+					genRandomGame(valuesPlaced);
 					return;
 				}
 				
@@ -904,54 +792,46 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 		
 		// Clear the values in all of the cells because the game is starting.
 		clearGame();
-		
-		// Counter for how many values are currently displayed on the board.
-		int valuesPlaced = 0;
-		
 		Random rand = new Random();
-		int randRow, randColumn, randNum;
+		String cValue;
+		int rRow, rCol;
 		int randCellValue;
+		int valueCounter = 0;
 		
 		// Generates values to be placed on the board.
-		while (valuesPlaced < 40) {
+		while (valueCounter < valuesPlaced) {
 			
 			//Generates random row and column.
-			randRow = rand.nextInt(9);
-			randColumn = rand.nextInt(9);
+			rRow = rand.nextInt(9);
+			rCol = rand.nextInt(9);
 			
 			// Grabs the value of the number in the cell of the random row and column. 
-			randCellValue = solvedGame[randRow][randColumn];
-			
+			randCellValue = solvedGame[rRow][rCol];
+			cValue = Integer.toString(randCellValue);
 			// randCellValue !=0 is to help catch errors and the second part of the if-statement
 			//		makes sure the generated cell is empty.
-			if (randCellValue != 0 && cells[randRow][randColumn].getEmptyStatus() != false) {
-				
+			if (randCellValue != 0 && cells[rRow][rCol].getEmptyStatus() != false) {
 				// Increment values placed. 
-				valuesPlaced++;
-				cells[randRow][randColumn].setText(Integer.toString(randCellValue));
-				game[randRow][randColumn] = randCellValue;
+					valueCounter++;
+					cells[rRow][rCol].setText(Integer.toString(randCellValue));
+					cells[rRow][rCol].setEmptyStatus(false);
+					cells[rRow][rCol].setValue(cValue);
+					cells[rRow][rCol].setOriginal(true);
+					cells[rRow][rCol].setEnabled(false);
+					game[rRow][rCol] = randCellValue;
 			}
 		}
-	}
-	
-	public void generateNewGame() {
-		// Clear all values from GUI. 
-		clearGame();
-				
-		// Creates a temporary 2D matrix for storing values.
-		int[][] newGame = new int[9][9];
-				
 		updateStatusLabels();
-		
-		
+		gameTimer();
 	}
 	
 	/**
 	 * The getHint method allows the user to receive a hint, at a random location on the game board.
 	 */
 	public void getHint() {
-		boolean valid = false;
+		
 		Random rand = new Random();
+		boolean valid = false;
 		int randRow, randColumn;
 		Cell randCell;
 		
@@ -961,7 +841,9 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 			randColumn = rand.nextInt(9);
 			randCell = cells[randRow][randColumn];
 			if(randCell.getEmptyStatus() == true && solvedGame[randRow][randColumn] != 0) {
+				randCell.setEmptyStatus(false);
 				randCell.setIsHintActive(true);
+				randCell.setEnabled(false);
 				randCell.setBackground(Color.GREEN);
 				randCell.setText(Integer.toString(solvedGame[randRow][randColumn]));
 				game[randRow][randColumn] = solvedGame[randRow][randColumn];
@@ -972,22 +854,16 @@ public class Sudoku extends JFrame implements ActionListener, KeyListener, Mouse
 	}
 	
 	/**
-	 * The resetHint method resets the colors of the cells. 
+	 * The resetHint method resets the colors of the cells and number of available hints.
 	 **/
 	public void resetHint() {
-		for(int i =0; i < 9; i++) {
+		for(int i = 0; i < 9; i++) {
 			for(int j = 0; j < 9; j ++) {
-				//changes the colors to the original colors
+				// Returns Cell backgrounds to their original color
 				cells[i][j].setBackground(cells[i][j].getColor());
+				availableHints = 3;
+				getHint.setText("Hint ("+ availableHints + ")");
 			}
 		}
 	}
 }
-		
-	
-	
-	
-	
-
-
-
